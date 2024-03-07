@@ -32,20 +32,70 @@ public class LanguageModel {
     }
 
     /** Builds a language model from the text in the given file (the corpus). */
-	public void train(String fileName) {
-		// Your code goes here
-	}
+	public void train(String fileName) throws IOException {
+  // Lire le fichier
+  try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+    String line;
+    while ((line = reader.readLine()) != null) {
+      // Traiter chaque ligne comme une fenêtre
+      processLine(line);
+    }
+  }
+}
+
+private void processLine(String line) {
+  // Créer une nouvelle fenêtre à partir de la ligne
+  String window = line.substring(0, windowLength);
+  // Obtenir la liste des probabilités pour la fenêtre
+  List probs = CharDataMap.get(window);
+  if (probs == null) {
+    probs = new List();
+    CharDataMap.put(window, probs);
+  }
+  // Mettre à jour les probabilités pour chaque caractère
+  for (int i = windowLength; i < line.length(); i++) {
+    char c = line.charAt(i);
+    probs.update(c);
+  }
+}
+
 
     // Computes and sets the probabilities (p and cp fields) of all the
 	// characters in the given list. */
-	public void calculateProbabilities(List probs) {				
-		// Your code goes here
-	}
+  public void calculateProbabilities(List probs) {
+  // Itérateur sur la liste
+  ListIterator iterator = new ListIterator(probs.getFirstNode());
+  // Total des occurrences
+  int totalCount = 0;
+  while (iterator.hasNext()) {
+    CharData current = iterator.next();
+    totalCount += current.count;
+  }
+  iterator = new ListIterator(probs.getFirstNode());
+  double prev = 0;
+  while (iterator.hasNext()) {
+    CharData current = iterator.next();
+    current.p = ((double) current.count) / totalCount;
+    current.cp = current.p + prev;
+    prev = current.cp;
+  }
+}
+
 
     // Returns a random character from the given probabilities list.
-	public char getRandomChar(List probs) {
-		// Your code goes here
-	}
+  public char getRandomChar(List probs) {
+  calculateProbabilities(probs);
+  double r = randomGenerator.nextDouble();
+  ListIterator iterator = new ListIterator(probs.getFirstNode());
+  while (iterator.hasNext()) {
+    CharData current = iterator.next();
+    if (current.cp >= r) {
+      return current.chr;
+    }
+  }
+  return '_';
+}
+
 
     /**
 	 * Generates a random text, based on the probabilities that were learned during training. 
@@ -54,9 +104,24 @@ public class LanguageModel {
 	 * @param numberOfLetters - the size of text to generate
 	 * @return the generated text
 	 */
-	public String generate(String initialText, int textLength) {
-		// Your code goes here
-	}
+  public String generate(String initialText, int textLength) {
+  if (initialText.length() < windowLength) {
+    return initialText;
+  }
+  String window = initialText.substring(initialText.length() - windowLength);
+  String generatedText = window;
+  while (generatedText.length() < textLength + windowLength) {
+    List probs = CharDataMap.get(window);
+    if (probs == null) {
+      break;
+    }
+    char nextChar = getRandomChar(probs);
+    generatedText += nextChar;
+    window = generatedText.substring(generatedText.length() - windowLength);
+  }
+  return generatedText;
+}
+
 
     /** Returns a string representing the map of this language model. */
 	public String toString() {
@@ -70,5 +135,19 @@ public class LanguageModel {
 
     public static void main(String[] args) {
 		// Your code goes here
+    int windowLength = Integer.parseInt(args[0]);
+        String initialText = args[1];
+        int generatedTextLength = Integer.parseInt(args[2]);
+        Boolean randomGeneration = args[3].equals("random");
+        String fileName = args[4];
+        LanguageModel lm;
+        if (randomGeneration)
+            lm = new LanguageModel(windowLength);
+        else
+            lm = new LanguageModel(windowLength, 20);
+        // Trains the model, creating the map.
+        lm.train(fileName);
+        // Generates text, and prints it.
+        System.out.println(lm.generate(initialText, generatedTextLength));
     }
 }
