@@ -147,20 +147,17 @@ public class LanguageModel {
 
     public static void main(String[] args) {
 		// Your code goes here
-        int windowLength = Integer.parseInt(args[0]);
-        String initialText = args[1];
-        int generatedTextLength = Integer.parseInt(args[2]);
-        Boolean randomGeneration = args[3].equals("random");
-        String fileName = args[4];
-        // Create the LanguageModel object
-        LanguageModel lm;
-        if (randomGeneration)
-            lm = new LanguageModel(windowLength);
-        else
-            lm = new LanguageModel(windowLength, 20);
-        // Trains the model, creating the map.
-        lm.train(fileName);
-        // Generates text, and prints it.
-        System.out.println(lm.generate(initialText, generatedTextLength));
+    int windowLength = Integer.parseInt(args[0]);
+    String initialText = args[1];
+    int generatedTextLength = Integer.parseInt(args[2]);
+    boolean randomGeneration = args[3].equals("random");
+    String fileName = args[4];
+
+    // Create and train the LanguageModel object
+    LanguageModel lm = randomGeneration ? new LanguageModel(windowLength) : new LanguageModel(windowLength, 20);
+    lm.train(fileName);
+
+    // Generate text and print it
+    System.out.println(lm.generate(initialText, generatedTextLength));
     }
 }
